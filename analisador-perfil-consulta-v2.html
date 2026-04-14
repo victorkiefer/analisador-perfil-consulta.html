@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Analisador de Perfil — Influência Máxima</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root{--bg:#0f0e0c;--surface:#1a1916;--surface2:#222119;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);--text:#f0ede6;--text2:#9b9790;--text3:#5c5a55;--accent:#c9a96e;--accent2:#8b6f3e;--green:#4a9e6e;--green-bg:#0d2318;--red:#c94a4a;--red-bg:#2a0d0d;--purple:#7a6ee0;--purple-bg:#13113a;--radius:12px;--radius-sm:8px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 16px 60px;}
+  header{width:100%;max-width:680px;padding:36px 0 28px;border-bottom:0.5px solid var(--border);margin-bottom:28px;}
+  .logo-tag{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;font-weight:500;}
+  h1{font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;color:var(--text);line-height:1.2;margin-bottom:8px;}
+  h1 em{font-style:italic;color:var(--accent);}
+  .subtitle{font-size:14px;color:var(--text2);line-height:1.6;}
+  .main{width:100%;max-width:680px;}
+  .section{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;}
+  .section-label{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);font-weight:500;margin-bottom:12px;}
+  input[type=password],input[type=text]{width:100%;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;}
+  input:focus{border-color:var(--accent);}
+  input::placeholder{color:var(--text3);}
+  button{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--surface2);color:var(--text2);padding:10px 16px;transition:all 0.15s;white-space:nowrap;}
+  button:hover{background:var(--surface);color:var(--text);}
+  button:disabled{opacity:0.35;cursor:not-allowed;}
+  .btn-accent{background:var(--accent);color:#0f0e0c;border-color:var(--accent);font-weight:600;width:100%;padding:13px;font-size:14px;}
+  .btn-accent:hover{background:#dfc07e;border-color:#dfc07e;color:#0f0e0c;}
+  .btn-accent:disabled{background:var(--surface2);color:var(--text3);border-color:var(--border);}
+  .btn-rec{background:var(--red-bg);color:var(--red);border-color:rgba(201,74,74,0.3);padding:12px 20px;font-size:14px;display:flex;align-items:center;gap:8px;}
+  .btn-rec:hover{background:rgba(201,74,74,0.2);color:#e06060;}
+  .btn-stop{background:var(--surface2);color:var(--text2);padding:12px 20px;font-size:14px;}
+  .status-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .timer{font-family:'DM Serif Display',serif;font-size:36px;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-1px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px 12px;border-radius:99px;border:0.5px solid var(--border);color:var(--text2);background:var(--surface2);}
+  .chip.recording{background:var(--red-bg);color:var(--red);border-color:rgba(201,74,74,0.3);}
+  .chip.success{background:var(--green-bg);color:var(--green);border-color:rgba(74,158,110,0.3);}
+  .chip.loading{background:var(--purple-bg);color:var(--purple);border-color:rgba(122,110,224,0.3);}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
+  .dot.pulse{animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  .wave{display:flex;align-items:flex-end;gap:3px;height:20px;}
+  .wbar{width:3px;border-radius:2px;background:var(--accent);animation:wv 0.9s ease-in-out infinite;}
+  .wbar:nth-child(2){animation-delay:0.1s}.wbar:nth-child(3){animation-delay:0.2s}.wbar:nth-child(4){animation-delay:0.3s}.wbar:nth-child(5){animation-delay:0.4s}
+  @keyframes wv{0%,100%{height:3px}50%{height:18px}}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .transcricao-box{background:var(--surface2);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:13px;color:var(--text2);line-height:1.8;min-height:70px;white-space:pre-wrap;margin-top:12px;}
+  .hint{font-size:12px;color:var(--text3);margin-top:8px;line-height:1.6;}
+  .hidden{display:none!important;}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:8px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .key-ok{font-size:13px;color:var(--green);margin-top:8px;}
+  .key-err{font-size:13px;color:var(--red);margin-top:8px;}
+  .info-box{background:rgba(201,169,110,0.06);border:0.5px solid rgba(201,169,110,0.18);border-radius:var(--radius-sm);padding:12px 14px;margin-top:12px;font-size:12px;color:var(--text2);line-height:1.8;}
+  .info-box a{color:var(--accent);text-decoration:none;}
+
+  /* Script de perguntas */
+  .pergunta-card{background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:16px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
+  .pergunta-card:hover{border-color:var(--accent2);background:rgba(201,169,110,0.06);}
+  .pergunta-card.feita{opacity:0.4;}
+  .pergunta-num{font-size:11px;color:var(--accent);font-weight:500;margin-bottom:4px;letter-spacing:0.08em;}
+  .pergunta-texto{font-size:14px;color:var(--text);line-height:1.5;}
+  .pergunta-dica{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.4;}
+
+  /* Confiança em tempo real */
+  .confianca-live{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;display:flex;align-items:center;gap:14px;margin-top:10px;}
+  .confianca-num{font-family:'DM Serif Display',serif;font-size:28px;color:var(--accent);min-width:56px;}
+  .confianca-barra-bg{flex:1;height:6px;background:var(--surface2);border-radius:99px;overflow:hidden;}
+  .confianca-barra{height:6px;border-radius:99px;background:var(--accent);transition:width 0.5s ease;}
+  .confianca-label{font-size:12px;color:var(--text2);}
+
+  /* Resultado */
+  .result-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:12px;}
+  .result-header{padding:20px;border-bottom:0.5px solid var(--border);}
+  .result-code{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+  .result-nome{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;color:var(--text);margin-bottom:6px;}
+  .conf-row{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .conf-bar-bg{flex:1;height:4px;background:var(--surface2);border-radius:99px;overflow:hidden;}
+  .conf-bar{height:4px;border-radius:99px;background:var(--accent);transition:width 0.8s ease;}
+  .conf-label{font-size:12px;color:var(--accent);font-weight:500;min-width:40px;text-align:right;}
+  .result-section{padding:16px 20px;border-bottom:0.5px solid var(--border);}
+  .result-section:last-child{border-bottom:none;}
+  .result-section-label{font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--text3);font-weight:500;margin-bottom:10px;}
+  .sinal{font-size:13px;color:var(--text2);margin-bottom:5px;padding-left:14px;position:relative;line-height:1.5;}
+  .sinal::before{content:'';position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--accent2);}
+  .abordagem{font-size:14px;color:var(--text);line-height:1.7;background:rgba(201,169,110,0.07);border-left:2px solid var(--accent);padding:12px 14px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;}
+  .frase{font-size:14px;color:var(--text);line-height:1.7;font-style:italic;background:var(--surface2);padding:12px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border);}
+  .evitar{font-size:13px;color:var(--red);line-height:1.6;background:var(--red-bg);padding:10px 14px;border-radius:var(--radius-sm);border:0.5px solid rgba(201,74,74,0.2);}
+  .auto-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 12px;border-radius:99px;background:var(--green-bg);color:var(--green);border:0.5px solid rgba(74,158,110,0.3);margin-bottom:12px;}
+  .tab-row{display:flex;gap:8px;margin-bottom:16px;}
+  .tab{padding:8px 16px;font-size:13px;cursor:pointer;border-radius:var(--radius-sm);border:0.5px solid var(--border);background:var(--surface2);color:var(--text2);}
+  .tab.active{background:var(--accent);color:#0f0e0c;border-color:var(--accent);font-weight:600;}
+  @media(max-width:480px){h1{font-size:22px;}.timer{font-size:28px;}.result-nome{font-size:22px;}}
+</style>
+</head>
+<body>
+<header>
+  <p class="logo-tag">Influência Máxima · Perfil Comportamental</p>
+  <h1>Identifique o perfil do<br><em>paciente em minutos</em></h1>
+  <p class="subtitle">Grave a consulta ou use o script de perguntas — a IA identifica o perfil C1–C9 automaticamente ao atingir 95% de confiança.</p>
+</header>
+<main class="main">
+
+  <!-- CONFIGURAÇÃO -->
+  <div class="section" id="secChave">
+    <p class="section-label">Configuração — chaves de API</p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:6px;">Chave AssemblyAI <span style="color:var(--text3);font-size:11px;">(transcrição de áudio)</span></p>
+    <input type="password" id="assemblyKey" placeholder="Cole sua chave AssemblyAI..." autocomplete="off" style="margin-bottom:12px;"/>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:6px;">Chave Anthropic <span style="color:var(--text3);font-size:11px;">(análise de perfil)</span></p>
+    <input type="password" id="anthropicKey" placeholder="sk-ant-..." autocomplete="off" style="margin-bottom:14px;"/>
+    <button onclick="salvarChaves()" style="width:100%;padding:12px;font-size:14px;font-weight:600;background:var(--accent);color:#0f0e0c;border:none;border-radius:var(--radius-sm);">Salvar e começar</button>
+    <p id="chaveMsg"></p>
+    <div class="info-box">
+      <strong style="color:var(--accent);">AssemblyAI:</strong> <a href="https://www.assemblyai.com" target="_blank">assemblyai.com</a> → API Keys → copie a chave.<br>
+      <strong style="color:var(--accent);">Anthropic:</strong> <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys → crie e copie.
+    </div>
+  </div>
+
+  <!-- APP PRINCIPAL -->
+  <div id="secApp" class="hidden">
+
+    <!-- ABAS -->
+    <div class="tab-row">
+      <button class="tab active" id="tabGravacao" onclick="switchTab('gravacao')">Gravar consulta</button>
+      <button class="tab" id="tabScript" onclick="switchTab('script')">Script de perguntas</button>
+    </div>
+
+    <!-- ABA GRAVAÇÃO -->
+    <div id="painelGravacao">
+      <div class="section">
+        <p class="section-label">Gravação da consulta</p>
+        <div class="status-bar">
+          <span class="timer" id="timer">00:00</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="wave hidden" id="waveAnim"><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div></div>
+            <span class="chip" id="statusChip"><span class="dot"></span> Pronto</span>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-rec" id="btnIniciar" onclick="iniciarGravacao()"><span class="dot pulse"></span> Iniciar gravação</button>
+          <button class="btn-stop" id="btnParar" onclick="pararETranscrecer()" disabled>Parar e transcrever</button>
+          <button id="btnNova" onclick="novaConsulta()" class="hidden">Nova consulta</button>
+        </div>
+        <p class="hint" style="margin-top:12px;">Grave os primeiros 2–5 minutos. A análise de perfil acontece automaticamente ao atingir 95% de confiança.</p>
+      </div>
+
+      <div class="section hidden" id="secTranscricao">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <p class="section-label" style="margin:0;">Transcrição</p>
+          <span class="chip success" style="font-size:11px;">AssemblyAI · Alta precisão</span>
+        </div>
+        <div class="transcricao-box" id="transcricaoBox"></div>
+        <p class="hint">Você pode editar o texto acima antes de analisar manualmente.</p>
+      </div>
+
+      <button class="btn-accent hidden" id="analisarBtn" onclick="analisar(transcricaoFinal)" style="margin-bottom:12px;">Analisar perfil manualmente</button>
+    </div>
+
+    <!-- ABA SCRIPT -->
+    <div id="painelScript" class="hidden">
+      <div class="section">
+        <p class="section-label">Script de identificação de perfil</p>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;">Faça estas perguntas ao paciente em ordem. Enquanto ele responde, anote ou grave as respostas. A IA analisa o padrão das respostas e identifica o perfil automaticamente.</p>
+
+        <div id="listaPerguntas"></div>
+
+        <div style="margin-top:16px;">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Respostas do paciente</p>
+          <textarea id="respostasScript" placeholder="Digite ou cole aqui o que o paciente respondeu às perguntas..." style="width:100%;min-height:120px;resize:vertical;font-size:13px;padding:12px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.7;outline:none;"></textarea>
+        </div>
+        <button class="btn-accent" onclick="analisarScript()" style="margin-top:12px;">Analisar respostas</button>
+      </div>
+    </div>
+
+    <!-- CONFIANÇA EM TEMPO REAL -->
+    <div class="hidden" id="secConfianca">
+      <div class="confianca-live">
+        <div>
+          <p style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Confiança atual</p>
+          <p class="confianca-num" id="confNum">0%</p>
+        </div>
+        <div style="flex:1;">
+          <div class="confianca-barra-bg"><div class="confianca-barra" id="confBarra" style="width:0%"></div></div>
+          <p class="confianca-label" style="margin-top:6px;" id="confLabel">Aguardando análise...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTADO -->
+    <div id="resultado"></div>
+
+    <!-- ALTERAR CHAVES -->
+    <div style="margin-top:20px;text-align:center;">
+      <button onclick="alterarChaves()" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;padding:8px;">Alterar chaves de API</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const PERFIS={
+  C1:{nome:"O Perfeccionista",quer:"Dados concretos, estudos, planejamento detalhado",evitar:"Respostas vagas ou pressão para decidir rápido",tecnica:"Técnica do Próximo Passo — mostre o processo passo a passo",frase:"Esse protocolo segue um padrão técnico rigoroso. Posso te mostrar um planejamento detalhado para que tenha total segurança antes de decidir."},
+  C2:{nome:"O Prestativo",quer:"Atenção personalizada, acolhimento, validação emocional",evitar:"Ser frio ou distante",tecnica:"Reafirmação de Interesse — mostre que ouviu e se importa",frase:"Quero entender exatamente o que você busca para criar um plano perfeito para você."},
+  C3:{nome:"O Realizador",quer:"Exclusividade, eficiência, resultado imediato",evitar:"Explicações longas e técnicas demais",tecnica:"Escolha Guiada — dê duas opções diretas",frase:"Esse protocolo é procurado por quem busca resultado sofisticado e imediato. Em poucos dias você já verá o impacto."},
+  C4:{nome:"O Individualista",quer:"Personalização, sofisticação, exclusividade",evitar:"Sugerir protocolos genéricos ou padronizados",tecnica:"Provas sociais + Reafirmação — mostre que o plano é exclusivo",frase:"Nosso objetivo é criar um protocolo que reflita sua identidade e destaque sua beleza de forma única."},
+  C5:{nome:"O Observador",quer:"Informação técnica, dados concretos, comparações embasadas",evitar:"Argumentos emocionais ou respostas sem embasamento",tecnica:"Técnica do Próximo Passo — dê material para ele analisar",frase:"Esse protocolo tem base científica sólida. Posso te enviar estudos para análise antes de decidirmos o próximo passo."},
+  C6:{nome:"O Leal",quer:"Garantias, histórias de sucesso, previsibilidade",evitar:"Respostas imprecisas ou pressão para decidir",tecnica:"Fechamento Progressivo + Provas Sociais",frase:"Muitos pacientes tinham essa mesma dúvida. Aqui estão relatos de pessoas que fizeram e ficaram extremamente satisfeitas."},
+  C7:{nome:"O Entusiasta",quer:"Facilidade, inovação, efeito imediato",evitar:"Processos longos, burocracia, muitos detalhes técnicos",tecnica:"Perguntas de compromisso — feche na empolgação",frase:"Esse é um dos protocolos mais modernos, os resultados aparecem logo nos primeiros dias. É uma experiência incrível!"},
+  C8:{nome:"O Desafiador",quer:"Clareza, objetividade, postura segura do profissional",evitar:"Hesitação, insegurança, enrolação",tecnica:"Perguntas de compromisso — seja firme e direto",frase:"Esse é o melhor procedimento para o que você busca. Com minha experiência, garanto um resultado de alto padrão."},
+  C9:{nome:"O Pacificador",quer:"Tranquilidade, processo gradual, sem pressão",evitar:"Senso de urgência ou pressão para decidir rápido",tecnica:"Fechamento Progressivo — comece pequeno",frase:"Podemos começar com uma abordagem mais sutil para que você veja como se sente. Se gostar, ajustamos."}
+};
+
+const PERGUNTAS=[
+  {num:"01",texto:"O que te trouxe até aqui hoje? O que você está buscando com esse atendimento?",dica:"Observe se a resposta é objetiva, emocional, técnica ou hesitante"},
+  {num:"02",texto:"Você já pesquisou algo sobre esse procedimento antes de vir?",dica:"C1/C5 pesquisam muito. C7 pesquisa por curiosidade. C9 quase não pesquisa"},
+  {num:"03",texto:"O que é mais importante para você no resultado: segurança, rapidez, exclusividade ou conforto?",dica:"Segurança → C1/C6. Rapidez → C3/C7. Exclusividade → C4/C8. Conforto → C2/C9"},
+  {num:"04",texto:"Como você costuma tomar decisões importantes? Você pesquisa muito, consulta alguém ou decide na hora?",dica:"Pesquisa muito → C1/C5. Consulta alguém → C2/C6. Decide na hora → C3/C7/C8. Demora → C9"},
+  {num:"05",texto:"Tem algo que te preocupa ou te impede de fazer esse procedimento?",dica:"Medo de errar → C6. Quer garantias científicas → C5. Preocupação com dor/tempo → C2/C9. Nenhuma preocupação → C3/C8"},
+  {num:"06",texto:"Se tudo correr bem, como você imagina que vai se sentir após o procedimento?",dica:"Fala de sentimentos → C2/C4. Fala de aparência/status → C3/C8. Fala de segurança → C1/C6. Fala de experiência → C7"},
+  {num:"07",texto:"Você prefere que eu explique tudo com detalhes técnicos ou prefere ir direto ao resultado?",dica:"Detalhes → C1/C5. Direto ao resultado → C3/C7/C8. Depende → C2/C4/C6/C9"},
+];
+
+let assemblyKey="", anthropicKey="", mediaRecorder=null, audioChunks=[], timerInterval=null, segundos=0, transcricaoFinal="", tabAtual="gravacao";
+
+// CARREGAR CHAVES SALVAS
+window.onload = function(){
+  const ak = localStorage.getItem("influencia_assembly_key");
+  const ck = localStorage.getItem("influencia_anthropic_key");
+  if(ak) document.getElementById("assemblyKey").value = ak;
+  if(ck) document.getElementById("anthropicKey").value = ck;
+  if(ak && ck){ assemblyKey=ak; anthropicKey=ck; mostrarApp(); }
+  renderPerguntas();
+};
+
+function renderPerguntas(){
+  const lista = document.getElementById("listaPerguntas");
+  if(!lista) return;
+  lista.innerHTML = PERGUNTAS.map((p,i)=>`
+    <div class="pergunta-card" id="pcard${i}" onclick="marcarPergunta(${i})">
+      <p class="pergunta-num">Pergunta ${p.num}</p>
+      <p class="pergunta-texto">${p.texto}</p>
+      <p class="pergunta-dica">${p.dica}</p>
+    </div>`).join("");
+}
+
+function marcarPergunta(i){
+  const card = document.getElementById("pcard"+i);
+  card.classList.toggle("feita");
+}
+
+function salvarChaves(){
+  const ak=document.getElementById("assemblyKey").value.trim();
+  const ck=document.getElementById("anthropicKey").value.trim();
+  const msg=document.getElementById("chaveMsg");
+  if(!ak||ak.length<10){msg.className="key-err";msg.textContent="Chave AssemblyAI inválida.";return;}
+  if(!ck.startsWith("sk-ant-")){msg.className="key-err";msg.textContent="Chave Anthropic inválida. Deve começar com sk-ant-";return;}
+  assemblyKey=ak; anthropicKey=ck;
+  localStorage.setItem("influencia_assembly_key", ak);
+  localStorage.setItem("influencia_anthropic_key", ck);
+  msg.className="key-ok"; msg.textContent="Chaves salvas! Não precisará digitar novamente.";
+  setTimeout(()=>mostrarApp(), 900);
+}
+
+function mostrarApp(){
+  document.getElementById("secChave").classList.add("hidden");
+  document.getElementById("secApp").classList.remove("hidden");
+}
+
+function alterarChaves(){
+  document.getElementById("secApp").classList.add("hidden");
+  document.getElementById("secChave").classList.remove("hidden");
+}
+
+function switchTab(tab){
+  tabAtual=tab;
+  document.getElementById("tabGravacao").className="tab"+(tab==="gravacao"?" active":"");
+  document.getElementById("tabScript").className="tab"+(tab==="script"?" active":"");
+  document.getElementById("painelGravacao").classList.toggle("hidden", tab!=="gravacao");
+  document.getElementById("painelScript").classList.toggle("hidden", tab!=="script");
+}
+
+function fmt(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");}
+
+function getMime(){
+  const tipos=["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus","audio/mp4",""];
+  for(const t of tipos){if(!t||MediaRecorder.isTypeSupported(t))return t;}
+  return "";
+}
+
+async function iniciarGravacao(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    audioChunks=[];
+    const mime=getMime();
+    mediaRecorder=new MediaRecorder(stream,mime?{mimeType:mime}:{});
+    mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size>0)audioChunks.push(e.data);};
+    mediaRecorder.start(500);
+    segundos=0;
+    timerInterval=setInterval(()=>{segundos++;document.getElementById("timer").textContent=fmt(segundos);},1000);
+    document.getElementById("btnIniciar").disabled=true;
+    document.getElementById("btnParar").disabled=false;
+    document.getElementById("waveAnim").classList.remove("hidden");
+    document.getElementById("resultado").innerHTML="";
+    document.getElementById("analisarBtn").classList.add("hidden");
+    document.getElementById("secTranscricao").classList.add("hidden");
+    document.getElementById("btnNova").classList.add("hidden");
+    document.getElementById("secConfianca").classList.add("hidden");
+    const chip=document.getElementById("statusChip");
+    chip.className="chip recording";
+    chip.innerHTML='<span class="dot pulse"></span> Gravando';
+  }catch(e){
+    document.getElementById("statusChip").className="chip";
+    document.getElementById("statusChip").innerHTML='<span class="dot" style="background:var(--red)"></span> Permita o microfone nas configurações';
+  }
+}
+
+async function pararETranscrecer(){
+  if(!mediaRecorder)return;
+  clearInterval(timerInterval);
+  document.getElementById("btnParar").disabled=true;
+  document.getElementById("waveAnim").classList.add("hidden");
+  const chip=document.getElementById("statusChip");
+  chip.className="chip loading";
+  chip.innerHTML='<span class="spinner"></span> Enviando áudio...';
+  const recMime=mediaRecorder.mimeType||"";
+  await new Promise(resolve=>{mediaRecorder.onstop=resolve;mediaRecorder.stop();});
+  mediaRecorder.stream.getTracks().forEach(t=>t.stop());
+  await new Promise(r=>setTimeout(r,400));
+  document.getElementById("secTranscricao").classList.remove("hidden");
+  document.getElementById("transcricaoBox").textContent="Transcrevendo...";
+  const blob=new Blob(audioChunks,{type:recMime||"audio/mp4"});
+  try{
+    chip.innerHTML='<span class="spinner"></span> Fazendo upload...';
+    const uploadResp=await fetch("https://api.assemblyai.com/v2/upload",{method:"POST",headers:{"authorization":assemblyKey,"content-type":"application/octet-stream"},body:blob});
+    if(!uploadResp.ok)throw new Error("Erro no upload ("+uploadResp.status+")");
+    const {upload_url}=await uploadResp.json();
+    chip.innerHTML='<span class="spinner"></span> Transcrevendo...';
+    const transcResp=await fetch("https://api.assemblyai.com/v2/transcript",{method:"POST",headers:{"authorization":assemblyKey,"content-type":"application/json"},body:JSON.stringify({audio_url:upload_url,language_detection:true,speech_models:["universal-2"]})});
+    if(!transcResp.ok){const eb=await transcResp.json().catch(()=>({}));throw new Error("Erro "+(eb.error||transcResp.status));}
+    const {id}=await transcResp.json();
+    let status="processing",texto="",tentativas=0;
+    while((status==="processing"||status==="queued")&&tentativas<40){
+      await new Promise(r=>setTimeout(r,3000));tentativas++;
+      const poll=await fetch("https://api.assemblyai.com/v2/transcript/"+id,{headers:{"authorization":assemblyKey}});
+      const res=await poll.json();
+      status=res.status;
+      if(status==="completed")texto=res.text||"(nenhuma fala detectada)";
+      if(status==="error")throw new Error("Falha: "+res.error);
+    }
+    if(!texto&&tentativas>=40)throw new Error("Tempo esgotado. Tente novamente.");
+    transcricaoFinal=texto;
+    document.getElementById("transcricaoBox").textContent=transcricaoFinal;
+    chip.className="chip success";
+    chip.innerHTML='<span class="dot"></span> Transcrição pronta';
+    document.getElementById("analisarBtn").classList.remove("hidden");
+    document.getElementById("btnNova").classList.remove("hidden");
+    // Análise automática
+    await analisar(transcricaoFinal, true);
+  }catch(e){
+    document.getElementById("transcricaoBox").textContent="Erro: "+e.message;
+    chip.className="chip";
+    chip.innerHTML='<span class="dot" style="background:var(--red)"></span> Erro';
+    document.getElementById("btnIniciar").disabled=false;
+    document.getElementById("btnNova").classList.remove("hidden");
+  }
+}
+
+async function analisarScript(){
+  const respostas=document.getElementById("respostasScript").value.trim();
+  if(!respostas||respostas.length<20){alert("Digite as respostas do paciente antes de analisar.");return;}
+  await analisar(respostas, true);
+}
+
+async function analisar(texto, automatico=false){
+  if(!texto||texto.length<20)return;
+  const btn=document.getElementById("analisarBtn");
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Identificando perfil...';}
+  document.getElementById("resultado").innerHTML="";
+  document.getElementById("secConfianca").classList.remove("hidden");
+  document.getElementById("confNum").textContent="...";
+  document.getElementById("confLabel").textContent="Analisando padrões comportamentais...";
+
+  const sys=`Você é especialista no método "Influência Máxima para Negócios" que identifica perfis comportamentais de pacientes em 9 tipos para profissionais de saúde e estética:
+C1-Perfeccionista: perguntas técnicas, quer segurança, dados e planejamento. Fala detalhado, metódico.
+C2-Prestativo: busca conexão emocional, quer acolhimento. Fala de sentimentos e relacionamentos.
+C3-Realizador: direto, quer resultado rápido e status. Fala de eficiência e impacto visual.
+C4-Individualista: quer algo único, odeia padrão. Fala de identidade, estética e exclusividade.
+C5-Observador: analítico, compara opções, quer lógica e dados científicos.
+C6-Leal: medo de errar, busca garantias e histórias de sucesso. Hesitante.
+C7-Entusiasta: empolgado, quer novidade e rapidez. Fala animado e impulsivo.
+C8-Desafiador: confiante, gosta de controle, testa o profissional. Fala de excelência.
+C9-Pacificador: indeciso, evita conflito, prefere opções seguras. Fala devagar e hesita.
+IMPORTANTE: Se a confiança for menor que 95%, indique isso claramente.
+Retorne SOMENTE JSON válido sem texto extra:
+{"perfil_principal":"C1","perfil_secundario":"C5","confianca":87,"sinais_identificados":["sinal 1","sinal 2","sinal 3"],"justificativa":"Explicação curta baseada na fala.","abordagem_sugerida":"Como conduzir o atendimento agora.","confianca_suficiente":true}`;
+
+  try{
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"content-type":"application/json","x-api-key":anthropicKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:[{role:"user",content:`Analise a fala/respostas do paciente: "${texto}"`}]})
+    });
+    const data=await resp.json();
+    if(data.error)throw new Error(data.error.message);
+    const raw=data.content.map(i=>i.text||"").join("").replace(/```json|```/g,"").trim();
+    const res=JSON.parse(raw);
+
+    // Atualizar barra de confiança
+    const conf=Math.round(res.confianca);
+    document.getElementById("confNum").textContent=conf+"%";
+    document.getElementById("confBarra").style.width=conf+"%";
+
+    if(conf>=95){
+      document.getElementById("confLabel").textContent="Perfil identificado com alta confiança!";
+      document.getElementById("confBarra").style.background="var(--green)";
+      document.getElementById("confNum").style.color="var(--green)";
+      renderResultado(res, automatico);
+    } else {
+      document.getElementById("confLabel").textContent="Confiança baixa — faça mais perguntas do script";
+      document.getElementById("confBarra").style.background="var(--accent)";
+      // Mostra resultado parcial mesmo assim
+      renderResultado(res, false, true);
+    }
+  }catch(e){
+    document.getElementById("resultado").innerHTML=`<p style="color:var(--red);font-size:13px;padding:12px 0;">Erro ao analisar: ${e.message}</p>`;
+  }
+  if(btn){btn.disabled=false;btn.textContent="Analisar novamente";}
+}
+
+function renderResultado(res, automatico=false, parcial=false){
+  const p=PERFIS[res.perfil_principal],ps=PERFIS[res.perfil_secundario];
+  if(!p)return;
+  const conf=Math.round(res.confianca);
+  document.getElementById("resultado").innerHTML=`
+    ${automatico?'<div class="auto-badge"><span class="dot" style="background:var(--green)"></span> Identificado automaticamente</div>':''}
+    ${parcial?'<div style="background:rgba(201,169,110,0.07);border:0.5px solid rgba(201,169,110,0.2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text2);">Confiança abaixo de 95% — use o script de perguntas para refinar o perfil.</div>':''}
+    <div class="result-card">
+      <div class="result-header">
+        <p class="result-code">${res.perfil_principal}</p>
+        <p class="result-nome">${p.nome}</p>
+        <p style="font-size:14px;color:var(--text2);line-height:1.7;font-style:italic;">${res.justificativa}</p>
+        <div class="conf-row">
+          <div class="conf-bar-bg"><div class="conf-bar" style="width:${conf}%;background:${conf>=95?'var(--green)':'var(--accent)'}"></div></div>
+          <span class="conf-label" style="color:${conf>=95?'var(--green)':'var(--accent)'};">${conf}%</span>
+        </div>
+      </div>
+      ${ps?`<div class="result-section"><p class="result-section-label">Perfil secundário</p><p style="font-size:14px;color:var(--text2);">${res.perfil_secundario} — <strong style="color:var(--text)">${ps.nome}</strong></p></div>`:""}
+      <div class="result-section">
+        <p class="result-section-label">Sinais identificados na fala</p>
+        ${(res.sinais_identificados||[]).map(s=>`<p class="sinal">${s}</p>`).join("")}
+      </div>
+      <div class="result-section">
+        <p class="result-section-label">Como conduzir o atendimento agora</p>
+        <div class="abordagem">${res.abordagem_sugerida}</div>
+      </div>
+      <div class="result-section">
+        <p class="result-section-label">O que ele quer ouvir</p>
+        <p style="font-size:14px;color:var(--text2);line-height:1.6;">${p.quer}</p>
+      </div>
+      <div class="result-section">
+        <p class="result-section-label">Técnica de fechamento recomendada</p>
+        <p style="font-size:14px;color:var(--text2);line-height:1.6;">${p.tecnica}</p>
+      </div>
+      <div class="result-section">
+        <p class="result-section-label">Frase de abordagem</p>
+        <div class="frase">"${p.frase}"</div>
+      </div>
+      <div class="result-section">
+        <p class="result-section-label">Evitar com esse perfil</p>
+        <div class="evitar">${p.evitar}</div>
+      </div>
+    </div>
+    <button class="btn-accent" onclick="novaConsulta()" style="margin-top:12px;width:100%;">Nova consulta</button>`;
+}
+
+function novaConsulta(){
+  audioChunks=[];transcricaoFinal="";segundos=0;
+  document.getElementById("timer").textContent="00:00";
+  document.getElementById("btnIniciar").disabled=false;
+  document.getElementById("btnParar").disabled=true;
+  document.getElementById("btnNova").classList.add("hidden");
+  document.getElementById("analisarBtn").classList.add("hidden");
+  document.getElementById("secTranscricao").classList.add("hidden");
+  document.getElementById("secConfianca").classList.add("hidden");
+  document.getElementById("resultado").innerHTML="";
+  document.getElementById("statusChip").className="chip";
+  document.getElementById("statusChip").innerHTML='<span class="dot"></span> Pronto';
+  if(document.getElementById("respostasScript"))document.getElementById("respostasScript").value="";
+  document.querySelectorAll(".pergunta-card").forEach(c=>c.classList.remove("feita"));
+}
+</script>
+</body>
+</html>
